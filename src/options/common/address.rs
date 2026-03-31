@@ -219,19 +219,31 @@ mod tests {
             Ipv6Addr::UNSPECIFIED
         );
 
+        {
         // Host with name should attempt to resolve the name
-        assert_eq!(
-            BindAddress::Host(Host::Name(String::from("example.com")))
-                .resolve(false)
-                .await
-                .unwrap(),
-            tokio::net::lookup_host("example.com:80")
+        let tokio_ip = tokio::net::lookup_host("example.com:80")
                 .await
                 .unwrap()
                 .next()
                 .unwrap()
-                .ip(),
+                .ip();
+
+        assert_eq!(
+            match tokio_ip {
+                IpAddr::V4(_) => {
+                    BindAddress::Host(Host::Name(String::from("example.com")))
+                    .resolve(false)
+                }
+                IpAddr::V6(_) => {
+                    BindAddress::Host(Host::Name(String::from("example.com")))
+                    .resolve(true)
+                }
+            }
+            .await
+            .unwrap(),
+            tokio_ip,
         );
+        }
 
         // Should support resolving localhost using ipv4/ipv6
         assert_eq!(
